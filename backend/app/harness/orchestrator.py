@@ -4,7 +4,7 @@ from app.harness.context import HarnessContext
 from app.harness.instructions import HarnessInstructions
 from app.harness.policy import HarnessPolicy
 from app.harness.policy_enforcement import PolicyEnforcement
-from app.harness.state import HarnessState
+from app.harness.state import HarnessExecutionStatus, HarnessState
 
 
 @dataclass(frozen=True)
@@ -42,4 +42,61 @@ class HarnessOrchestrator:
         return self._policy_enforcement.can_use_tool(
             tool_name,
             execution.context,
+        )
+
+    def start(
+        self,
+        execution: HarnessExecution,
+    ) -> HarnessExecution:
+        return self._transition(
+            execution,
+            HarnessExecutionStatus.RUNNING,
+        )
+
+    def begin_tool_call(
+        self,
+        execution: HarnessExecution,
+    ) -> HarnessExecution:
+        return self._transition(
+            execution,
+            HarnessExecutionStatus.TOOL_CALL,
+        )
+
+    def begin_verification(
+        self,
+        execution: HarnessExecution,
+    ) -> HarnessExecution:
+        return self._transition(
+            execution,
+            HarnessExecutionStatus.VERIFYING,
+        )
+
+    def complete(
+        self,
+        execution: HarnessExecution,
+    ) -> HarnessExecution:
+        return self._transition(
+            execution,
+            HarnessExecutionStatus.COMPLETED,
+        )
+
+    def fail(
+        self,
+        execution: HarnessExecution,
+    ) -> HarnessExecution:
+        return self._transition(
+            execution,
+            HarnessExecutionStatus.FAILED,
+        )
+
+    @staticmethod
+    def _transition(
+        execution: HarnessExecution,
+        status: HarnessExecutionStatus,
+    ) -> HarnessExecution:
+        return HarnessExecution(
+            context=execution.context,
+            instructions=execution.instructions,
+            policy=execution.policy,
+            state=execution.state.transition(status),
         )

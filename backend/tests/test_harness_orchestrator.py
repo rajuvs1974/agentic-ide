@@ -95,3 +95,40 @@ def test_orchestrator_denies_unknown_tool() -> None:
         execution,
         "terminal",
     ) is False
+
+
+def test_orchestrator_manages_execution_lifecycle() -> None:
+    orchestrator, execution = create_execution()
+
+    execution = orchestrator.start(execution)
+    assert execution.state.status == HarnessExecutionStatus.RUNNING
+
+    execution = orchestrator.begin_tool_call(execution)
+    assert execution.state.status == HarnessExecutionStatus.TOOL_CALL
+
+    execution = orchestrator.begin_verification(execution)
+    assert execution.state.status == HarnessExecutionStatus.VERIFYING
+
+    execution = orchestrator.complete(execution)
+    assert execution.state.status == HarnessExecutionStatus.COMPLETED
+
+
+def test_orchestrator_can_fail_execution() -> None:
+    orchestrator, execution = create_execution()
+
+    execution = orchestrator.start(execution)
+    failed_execution = orchestrator.fail(execution)
+
+    assert execution.state.status == HarnessExecutionStatus.RUNNING
+    assert failed_execution.state.status == HarnessExecutionStatus.FAILED
+
+
+def test_orchestrator_preserves_execution_context_during_transition() -> None:
+    orchestrator, execution = create_execution()
+
+    started = orchestrator.start(execution)
+
+    assert started.context == execution.context
+    assert started.instructions == execution.instructions
+    assert started.policy == execution.policy
+    assert started.state.task_id == execution.state.task_id
