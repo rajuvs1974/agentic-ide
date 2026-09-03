@@ -1,3 +1,4 @@
+
 import pytest
 
 from app.harness.context import HarnessContext
@@ -22,12 +23,22 @@ def create_orchestrator() -> HarnessOrchestrator:
     )
 
     authorization = ToolAuthorization(registry)
+
     policy = HarnessPolicy(
         workspace_scope="/workspace/demo",
     )
-    enforcement = PolicyEnforcement(authorization, policy)
 
-    return HarnessOrchestrator(enforcement)
+    enforcement = PolicyEnforcement(
+        authorization,
+        policy,
+    )
+
+    verification_engine = VerificationEngine()
+
+    return HarnessOrchestrator(
+        enforcement,
+        verification_engine,
+    )
 
 
 def create_execution() -> tuple[HarnessOrchestrator, HarnessExecution]:
@@ -123,7 +134,11 @@ def test_orchestrator_manages_execution_lifecycle() -> None:
         )
     )
 
-    execution = orchestrator.complete(execution, verification)
+    execution = orchestrator.complete(
+        execution,
+        verification_results=verification.results,
+    )
+
     assert execution.state.status == HarnessExecutionStatus.COMPLETED
 
 
@@ -147,7 +162,10 @@ def test_orchestrator_rejects_completion_when_verification_fails() -> None:
         ValueError,
         match="Execution cannot be completed until verification passes",
     ):
-        orchestrator.complete(execution, verification)
+        orchestrator.complete(
+            execution,
+            verification_results=verification.results,
+        )
 
 
 def test_orchestrator_rejects_completion_without_verification() -> None:
@@ -182,3 +200,4 @@ def test_orchestrator_preserves_execution_context_during_transition() -> None:
     assert started.instructions == execution.instructions
     assert started.policy == execution.policy
     assert started.state.task_id == execution.state.task_id
+
