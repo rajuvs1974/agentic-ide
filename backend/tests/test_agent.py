@@ -20,5 +20,5 @@ def test_create_agent_task() -> None:
 
     assert data["instruction"] == "Create a FastAPI health endpoint"
     assert data["workspace"] == "/workspace/demo"
-    assert data["status"] == "created"
+    assert data["status"] == "completed"
     assert data["task_id"]
