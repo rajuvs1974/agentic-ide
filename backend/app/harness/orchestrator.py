@@ -5,6 +5,7 @@ from app.harness.instructions import HarnessInstructions
 from app.harness.policy import HarnessPolicy
 from app.harness.policy_enforcement import PolicyEnforcement
 from app.harness.state import HarnessExecutionStatus, HarnessState
+from app.harness.verification_engine import VerificationSummary
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,15 @@ class HarnessOrchestrator:
     def complete(
         self,
         execution: HarnessExecution,
+        verification: VerificationSummary | None = None,
     ) -> HarnessExecution:
+        if execution.policy.require_verification and (
+            verification is None or not verification.passed
+        ):
+            raise ValueError(
+                "Execution cannot be completed until verification passes"
+            )
+
         return self._transition(
             execution,
             HarnessExecutionStatus.COMPLETED,

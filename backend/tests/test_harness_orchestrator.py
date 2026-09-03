@@ -1,3 +1,5 @@
+import pytest
+
 from app.harness.context import HarnessContext
 from app.harness.instructions import HarnessInstructions
 from app.harness.orchestrator import HarnessExecution, HarnessOrchestrator
@@ -6,6 +8,8 @@ from app.harness.policy_enforcement import PolicyEnforcement
 from app.harness.state import HarnessExecutionStatus
 from app.harness.tool_authorization import ToolAuthorization
 from app.harness.tool_registry import ToolDefinition, ToolRegistry
+from app.harness.verification import VerificationResult, VerificationStatus
+from app.harness.verification_engine import VerificationEngine
 
 
 def create_orchestrator() -> HarnessOrchestrator:
@@ -109,8 +113,54 @@ def test_orchestrator_manages_execution_lifecycle() -> None:
     execution = orchestrator.begin_verification(execution)
     assert execution.state.status == HarnessExecutionStatus.VERIFYING
 
-    execution = orchestrator.complete(execution)
+    verification = VerificationEngine().evaluate(
+        (
+            VerificationResult(
+                name="pytest",
+                status=VerificationStatus.PASSED,
+                message="All tests passed",
+            ),
+        )
+    )
+
+    execution = orchestrator.complete(execution, verification)
     assert execution.state.status == HarnessExecutionStatus.COMPLETED
+
+
+def test_orchestrator_rejects_completion_when_verification_fails() -> None:
+    orchestrator, execution = create_execution()
+
+    execution = orchestrator.start(execution)
+    execution = orchestrator.begin_verification(execution)
+
+    verification = VerificationEngine().evaluate(
+        (
+            VerificationResult(
+                name="pytest",
+                status=VerificationStatus.FAILED,
+                message="Tests failed",
+            ),
+        )
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Execution cannot be completed until verification passes",
+    ):
+        orchestrator.complete(execution, verification)
+
+
+def test_orchestrator_rejects_completion_without_verification() -> None:
+    orchestrator, execution = create_execution()
+
+    execution = orchestrator.start(execution)
+    execution = orchestrator.begin_verification(execution)
+
+    with pytest.raises(
+        ValueError,
+        match="Execution cannot be completed until verification passes",
+    ):
+        orchestrator.complete(execution)
 
 
 def test_orchestrator_can_fail_execution() -> None:
