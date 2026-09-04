@@ -1,4 +1,7 @@
 
+
+from unittest.mock import Mock
+
 import pytest
 
 from app.harness.context import HarnessContext
@@ -201,3 +204,76 @@ def test_orchestrator_preserves_execution_context_during_transition() -> None:
     assert started.policy == execution.policy
     assert started.state.task_id == execution.state.task_id
 
+def test_orchestrator_uses_injected_verification_engine() -> None:
+    verification_engine = Mock(spec=VerificationEngine)
+
+    verification_engine.evaluate.return_value = (
+        VerificationEngine().evaluate(
+            (
+                VerificationResult(
+                    name="pytest",
+                    status=VerificationStatus.PASSED,
+                    message="All tests passed",
+                ),
+            )
+        )
+    )
+
+    registry = ToolRegistry()
+    authorization = ToolAuthorization(registry)
+    policy = HarnessPolicy(
+        workspace_scope="/workspace/demo",
+    )
+    enforcement = PolicyEnforcement(
+        authorization,
+        policy,
+    )
+
+    orchestrator = HarnessOrchestrator(
+        enforcement,
+        verification_engine,
+    )
+
+    context = HarnessContext(
+        task_id="task-123",
+        workspace="/workspace/demo",
+        instruction="Implement the health endpoint",
+    )
+
+    instructions = HarnessInstructions(
+        system="You are a software engineering agent.",
+        task=context.instruction,
+    )
+
+    execution_policy = HarnessPolicy(
+        workspace_scope="/workspace/demo",
+        require_verification=True,
+    )
+
+    execution = orchestrator.create_execution(
+        context=context,
+        instructions=instructions,
+        policy=execution_policy,
+    )
+
+    execution = orchestrator.start(execution)
+    execution = orchestrator.begin_verification(execution)
+
+    verification_results = (
+        VerificationResult(
+            name="pytest",
+            status=VerificationStatus.PASSED,
+            message="All tests passed",
+        ),
+    )
+
+    completed = orchestrator.complete(
+        execution,
+        verification_results=verification_results,
+    )
+
+    verification_engine.evaluate.assert_called_once_with(
+        verification_results,
+    )
+
+    assert completed.state.status == HarnessExecutionStatus.COMPLETED
