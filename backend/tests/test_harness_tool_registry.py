@@ -5,9 +5,10 @@ def test_tool_registry_registers_and_discovers_tool() -> None:
     registry = ToolRegistry()
 
     tool = ToolDefinition(
-        name="filesystem",
-        description="Read and write files in the workspace",
-    )
+    name="filesystem",
+    description="Read and write workspace files",
+    handler=lambda arguments: arguments,
+)
 
     registry.register(tool)
 
@@ -27,10 +28,12 @@ def test_tool_registry_supports_multiple_tools() -> None:
     filesystem = ToolDefinition(
         name="filesystem",
         description="Read and write workspace files",
+        handler=lambda arguments: arguments,
     )
     terminal = ToolDefinition(
         name="terminal",
         description="Execute approved terminal commands",
+        handler=lambda arguments: arguments,
     )
 
     registry.register(filesystem)

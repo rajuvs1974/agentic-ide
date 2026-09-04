@@ -11,6 +11,7 @@ def create_enforcement() -> PolicyEnforcement:
         ToolDefinition(
             name="filesystem",
             description="Read and write workspace files",
+            handler=lambda arguments: arguments,
         )
     )
 

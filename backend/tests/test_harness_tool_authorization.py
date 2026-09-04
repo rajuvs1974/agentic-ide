@@ -16,9 +16,10 @@ def test_authorizes_registered_and_allowed_tool() -> None:
     registry = ToolRegistry()
     registry.register(
         ToolDefinition(
-            name="filesystem",
-            description="Read and write workspace files",
-        )
+    name="filesystem",
+    description="Read and write workspace files",
+    handler=lambda arguments: arguments,
+)
     )
 
     authorization = ToolAuthorization(registry)
@@ -33,6 +34,7 @@ def test_denies_registered_but_not_allowed_tool() -> None:
         ToolDefinition(
             name="terminal",
             description="Execute approved terminal commands",
+            handler=lambda arguments: arguments,
         )
     )
 

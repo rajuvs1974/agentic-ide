@@ -20,9 +20,10 @@ def create_orchestrator() -> HarnessOrchestrator:
     registry = ToolRegistry()
     registry.register(
         ToolDefinition(
-            name="filesystem",
-            description="Read and write workspace files",
-        )
+    name="filesystem",
+    description="Read and write workspace files",
+    handler=lambda arguments: arguments,
+)
     )
 
     authorization = ToolAuthorization(registry)
